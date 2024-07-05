@@ -33,6 +33,10 @@ module.exports = function (app) {
       let project = req.params.project;
       const { issue_title, issue_text, created_by, assigned_to, status_text} = req.body
 
+      if(!issue_title || !issue_text || !created_by) {
+        return res.send('Missing required fields!')
+      }
+
       const issue = new Issue({
         issue_title,
         issue_text,
