@@ -1,117 +1,136 @@
 'use strict';
-
 const mongoose = require('mongoose');
-require('dotenv').config();
-
-const issueSchema = new mongoose.Schema({
-  issue_title: String,
-  issue_text: String,
-  created_on: Date,
-  updated_on: Date,
-  created_by: String,
-  assigned_to: String,
-  open: {type: Boolean, default: true},
-  status_text: String
-})
-
-const Issue = mongoose.model('Issue', issueSchema)
+const IssueModel = require('../models').Issue;
+const ProjectModel = require('../models').Project;
 
 module.exports = function (app) {
-  mongoose.connect(process.env.MONGO_URI);
 
-  app.route('/api/issues/:project')
-  
-    .get(async function (req, res){
-      let project = req.params.project;
+  app
+    .route('/api/issues/:project')
 
-      const foundIssues = await Issue.find(req.query)
-
-      res.send(foundIssues)
+    .get(async function (req, res) {
+      let projectName = req.params.project;
+      try {
+        const project = await ProjectModel.findOne({name: projectName})
+        if(!project) {
+          res.json([{error: 'project not found'}])
+          return
+        } else {
+          const issues = await IssueModel.find({
+            projectId: project._id,
+            ...req.query,
+          })
+          if(!issues){
+            res.json([{error: 'no issues found'}])
+            return
+          }
+          res.json(issues)
+          return
+        }
+      } catch(err) {
+        res.json({error: 'could not get', _id: _id})
+      }
     })
-    
-    .post(async function (req, res){
-      let project = req.params.project;
-      const { issue_title, issue_text, created_by, assigned_to, status_text} = req.body
 
-      if(!issue_title || !issue_text || !created_by) {
-        return res.send('Missing required fields!')
+    .post(async function (req, res) {
+      let project = req.params.project;
+      const { issue_title, issue_text, created_by, assigned_to, status_text } =
+        req.body;
+      if (!issue_title || !issue_text || !created_by) {
+        res.json({ error: 'required field(s) missing' });
+        return;
       }
 
-      const issue = new Issue({
+      try {
+        let projectModel = await ProjectModel.findOne({ name: project })
+        if (!projectModel) {
+          projectModel = new ProjectModel({ name: projectName });
+          projectModel = await projectModel.save();
+        }
+        const issueModel = new IssueModel({
+          projectId: projectModel._id,
+          issue_title: issue_title || '',
+          issue_text: issue_text || '',
+          created_on: new Date(),
+          updated_on: new Date(),
+          created_by: created_by || '',
+          assigned_to: assigned_to || '',
+          status_text: status_text || '',
+          open: true,
+        });
+        const issue = await issueModel.save()
+        res.json(issue)
+      } catch(err) {
+        res.json({error: 'could not post'})
+      }
+    })
+
+    .put(async function (req, res) {
+      let projectName = req.params.project;
+      const {
+        _id,
         issue_title,
         issue_text,
-        created_on: new Date().toISOString(),
-        updated_on: new Date().toISOString(),
         created_by,
-        assigned_to: assigned_to || "",
-        status_text: status_text || ""
-      })
-
-      await issue.save()
-      res.send('Added to database!')
-    })
-    
-    .put(async function (req, res){
-      let project = req.params.project;
-      const {_id, issue_title, issue_text, created_by, assigned_to, status_text, open} = req.body
-
-      if(!_id) {
-        return res.send('Please provide an ID...')
-      }
-
-      function isAllFieldsButIdEmpty(obj) {
-        for (let key in obj) {
-          if (key !== '_id' && obj.hasOwnProperty(key)) {
-            if (obj[key].length !== 0) {
-              return false
-            }
-          }
-        }
-        return true
-      }
-
-      if (isAllFieldsButIdEmpty(req.body)) {
-        return res.send('Please, provide a field to update...')
-      }
-
-      const updatedIssue = {
-        ...(issue_title && {issue_title}),
-        ...(issue_text && {issue_text}),
-        ...(created_by && {created_by}),
-        ...(assigned_to && {assigned_to}),
-        ...(status_text && {status_text}),
-        ...(open && {open}),
-        updated_on: new Date().toISOString()
-      }
-
-      try {
-        await Issue.findByIdAndUpdate(_id, updatedIssue)
-        return res.send('Updated in database!')
-      } catch(err) {
-        return res.send('No match found in database :(')
-      }
-    })
-    
-    .delete(async function (req, res){
-      let project = req.params.project;
-      const {_id} = req.body
+        assigned_to,
+        status_text,
+        open,
+      } = req.body;
 
       if (!_id) {
-        return res.send('Please provide an ID')
+        res.json({ error: 'missing_id' });
+        return;
       }
-      
+      if (
+        !issue_title &&
+        !issue_text &&
+        !created_by &&
+        !assigned_to &&
+        !status_text &&
+        !open
+      ) {
+        res.json({ error: 'no update field(s) sent', _id: _id });
+        return;
+      }
+
       try {
-        await Issue.findByIdAndDelete(_id)
-        return res.send('Removed from database!')
+        const projectModel = await ProjectModel.findOne({name: projectName})
+        if (!projectModel) {
+          throw new Error('project not found')
+        }
+        let issue = await IssueModel.findByIdAndUpdate(_id, {
+          ...req.body,
+          updated_on: new Date(),
+        })
+        await issue.save()
+        res.json({result: 'successfully updated', _id: _id})
       } catch(err) {
-        // console.log(err)
-        return res.send('No match found in database :(')
+        res.json({error: 'could not update', _id: _id})
       }
-    });
-    
-    app.delete('/api/deleteAll', async (req, res) => {
-      const deletedCount = await Issue.deleteMany({})
-      res.send(`deleted all documents from database + ${JSON.stringify(deletedCount)}`)
     })
 
+    .delete(async function (req, res) {
+      let projectName = req.params.project
+      const {_id} = req.body
+      if(!_id) {
+        res.json({error: 'missing _id'})
+        return
+      }
+      try {
+        const projectModel = await ProjectModel.findOne({name: projectName})
+        if(!projectModel) {
+          throw new Error('project not found')
+        }
+        const result = await IssueModel.deleteOne({
+          _id: _id,
+          projectId: projectModel._id,
+        })
+        if(result.deletedCount === 0){
+          throw new Error('ID not found')
+        }
+        res.json({result: 'successfully deleted', _id: _id})
+      } catch(err) {
+        res.json({error: 'could not delete', _id: _id})
+      }
+    });
 };
