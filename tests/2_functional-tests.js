@@ -67,8 +67,8 @@ suite('Functional Tests', function () {
         .request(server)
         .get('/api/issues/{project}')
         .end((err, res) => {
-          if (err) return done(err);
-          assert(Array.isArray(res.body));
+          assert.equal(res.status, 200);
+          assert.isArray(res.body);
           done();
         });
     });
@@ -77,7 +77,7 @@ suite('Functional Tests', function () {
         .request(server)
         .get('/api/issues/{project}?created_by=Joe')
         .end((err, res) => {
-          if (err) return done(err);
+          assert.equal(res.status, 200)
           res.body.forEach((obj) => {
             assert.equal(obj.created_by, 'Joe');
           });
@@ -89,7 +89,7 @@ suite('Functional Tests', function () {
         .request(server)
         .get('/api/issues/{project}?created_by=Joe&open=true')
         .end((err, res) => {
-          if (err) return done(err);
+          assert.equal(res.status, 200)
           res.body.forEach((obj) => {
             assert.isOk(obj.created_by === 'Joe' && obj.open === true);
           });
@@ -104,7 +104,7 @@ suite('Functional Tests', function () {
         .request(server)
         .get('/api/issues/{project}')
         .end((err, res) => {
-          if (err) return done(err);
+          assert.equal(res.status, 200)
           const _id = res.body[0]._id;
           const payload = {
             _id,
@@ -115,7 +115,7 @@ suite('Functional Tests', function () {
             .put('/api/issues/{project}')
             .send(payload)
             .end((err, res) => {
-              if (err) return done(err);
+              assert.equal(res.status, 200)
               Object.keys(payload).forEach((key) => {
                 assert.equal(res.request._data[key], payload[key]);
               });
@@ -128,7 +128,7 @@ suite('Functional Tests', function () {
         .request(server)
         .get('/api/issues/{project}')
         .end((err, res) => {
-          if (err) return done(err);
+          assert.equal(res.status, 200)
           const _id = res.body[0]._id;
   
           const payload = {
@@ -141,7 +141,7 @@ suite('Functional Tests', function () {
             .put('/api/issues/{project}')
             .send(payload)
             .end((err, res) => {
-              if (err) return done(err);
+              assert.equal(res.status, 200)
               Object.keys(payload).forEach((key) => {
                 assert.equal(res.request._data[key], payload[key]);
               });
@@ -159,6 +159,7 @@ suite('Functional Tests', function () {
         .put('/api/issues/{project}')
         .send(payload)
         .end((err, res) => {
+          assert.equal(res.status, 200)
           assert.deepEqual(JSON.parse(res.text), { error: 'missing _id' });
           done();
         });
@@ -168,7 +169,7 @@ suite('Functional Tests', function () {
         .request(server)
         .get('/api/issues/{project}')
         .end((err, res) => {
-          if (err) return done(err);
+          assert.equal(res.status, 200)
           const _id = res.body[0]._id;
   
           const payload = {_id};
@@ -177,6 +178,7 @@ suite('Functional Tests', function () {
             .put('/api/issues/{project}')
             .send(payload)
             .end((err, res) => {
+              assert.equal(res.status, 200)
               assert.deepEqual(JSON.parse(res.text), { error: 'no update field(s) sent', _id });
               done();
             });
@@ -193,7 +195,7 @@ suite('Functional Tests', function () {
           .put('/api/issues/{project}')
           .send(payload)
           .end((err, res) => {
-            if (err) return done(err);
+            assert.equal(res.status, 200)
             assert.deepEqual(JSON.parse(res.text), { error: 'could not update', _id: payload._id });
             done();
           });
@@ -206,7 +208,7 @@ suite('Functional Tests', function () {
       .request(server)
       .get('/api/issues/{project}')
       .end((err, res) => {
-        if (err) return done(err);
+        assert.equal(res.status, 200)
         const _id = res.body[0]._id;
         const payload = {_id}
         chai
@@ -214,7 +216,7 @@ suite('Functional Tests', function () {
           .delete('/api/issues/{project}')
           .send(payload)
           .end((err, res) => {
-            if (err) return done(err);
+            assert.equal(res.status, 200)
             assert.deepEqual(JSON.parse(res.text), { result: 'successfully deleted', _id });
             done();
           });
@@ -227,6 +229,7 @@ suite('Functional Tests', function () {
         .delete('/api/issues/{project}')
         .send(payload)
         .end((err, res) => {
+          assert.equal(res.status, 200)
           assert.deepEqual(JSON.parse(res.text), { error: 'could not delete', _id: payload._id });
           done();
         });
@@ -237,7 +240,7 @@ suite('Functional Tests', function () {
         .delete('/api/issues/{project}')
         .send({})
         .end((err, res) => {
-          if (err) return done(err);
+          assert.equal(res.status, 200)
           assert.deepEqual(JSON.parse(res.text), { error: 'missing _id' });
           done();
         });
