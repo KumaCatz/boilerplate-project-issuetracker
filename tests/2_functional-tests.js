@@ -20,7 +20,7 @@ suite('Functional Tests', function () {
         .post('/api/issues/{project}')
         .send(payload)
         .end((err, res) => {
-          if (err) return done(err);
+          assert.equal(res.status, 200)
           Object.keys(payload).forEach((key) => {
             assert.equal(res.request._data[key], payload[key]);
           });
@@ -38,7 +38,7 @@ suite('Functional Tests', function () {
         .post('/api/issues/{project}')
         .send(payload)
         .end((err, res) => {
-          if (err) return done(err);
+          assert.equal(res.status, 200)
           Object.keys(payload).forEach((key) => {
             assert.equal(res.request._data[key], payload[key]);
           });
@@ -54,8 +54,8 @@ suite('Functional Tests', function () {
         .post('/api/issues/{project}')
         .send(payload)
         .end((err, res) => {
-          if (err) return done(err);
-          assert.equal(res.text, 'Missing required fields!');
+          assert.equal(res.status, 200)
+          assert.deepEqual(JSON.parse(res.text), { error: 'required field(s) missing' });
           done();
         });
     });
@@ -159,8 +159,7 @@ suite('Functional Tests', function () {
         .put('/api/issues/{project}')
         .send(payload)
         .end((err, res) => {
-          if (err) return done(err);
-          assert.equal(res.text, 'Please provide an ID...');
+          assert.deepEqual(JSON.parse(res.text), { error: 'missing _id' });
           done();
         });
     });
@@ -178,8 +177,7 @@ suite('Functional Tests', function () {
             .put('/api/issues/{project}')
             .send(payload)
             .end((err, res) => {
-              if (err) return done(err);
-              assert.equal(res.text, 'Please, provide a field to update...');
+              assert.deepEqual(JSON.parse(res.text), { error: 'no update field(s) sent', _id });
               done();
             });
         });
@@ -196,7 +194,7 @@ suite('Functional Tests', function () {
           .send(payload)
           .end((err, res) => {
             if (err) return done(err);
-            assert.equal(res.text, 'No match found in database :(');
+            assert.deepEqual(JSON.parse(res.text), { error: 'could not update', _id: payload._id });
             done();
           });
       });  
@@ -217,7 +215,7 @@ suite('Functional Tests', function () {
           .send(payload)
           .end((err, res) => {
             if (err) return done(err);
-            assert.equal(res.text, 'Removed from database!');
+            assert.deepEqual(JSON.parse(res.text), { result: 'successfully deleted', _id });
             done();
           });
       })
@@ -229,8 +227,7 @@ suite('Functional Tests', function () {
         .delete('/api/issues/{project}')
         .send(payload)
         .end((err, res) => {
-          if (err) return done(err);
-          assert.equal(res.text, 'No match found in database :(');
+          assert.deepEqual(JSON.parse(res.text), { error: 'could not delete', _id: payload._id });
           done();
         });
     });
@@ -241,7 +238,7 @@ suite('Functional Tests', function () {
         .send({})
         .end((err, res) => {
           if (err) return done(err);
-          assert.equal(res.text, 'Please provide an ID');
+          assert.deepEqual(JSON.parse(res.text), { error: 'missing _id' });
           done();
         });
     });
